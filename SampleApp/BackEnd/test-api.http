@@ -1,0 +1,15 @@
+### Step 1: Request Device Code
+POST https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode
+Content-Type: application/x-www-form-urlencoded
+
+client_id=48d9762f-fc4c-4d0a-9670-a37904a29cf2&scope=api://48d9762f-fc4c-4d0a-9670-a37904a29cf2/Weather.Read
+
+### Step 2: Poll for Access Token (replace YOUR_DEVICE_CODE)
+POST https://login.microsoftonline.com/consumers/oauth2/v2.0/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=device_code&client_id=48d9762f-fc4c-4d0a-9670-a37904a29cf2&device_code=YOUR_DEVICE_CODE
+
+### Step 3: Call Protected API Endpoint
+GET http://localhost:8080/weatherforecast
+Authorization: Bearer <access_token>

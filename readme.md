@@ -1,3 +1,93 @@
+# Securing the Backend with Azure AD (Personal Microsoft Accounts)
+
+## Step-by-Step Guide
+
+### 1. Create and Configure Azure AD App Registration
+1. Go to Azure Portal > Azure Active Directory > App registrations > New registration.
+2. Set Supported account types to **Personal Microsoft accounts only**.
+3. Set a name (e.g., "Weather API App").
+4. After creation, note the **Application (client) ID**.
+5. Under **Expose an API**, set the Application ID URI (e.g., `api://<client_id>`).
+6. Add a scope (e.g., `Weather.Read`).
+7. Under **Authentication**, add a redirect URI for public clients: `https://login.microsoftonline.com/common/oauth2/nativeclient`.
+8. Enable **Allow public client flows**.
+
+### 2. Update Backend Code and Configuration
+* Install NuGet packages:
+	- `Microsoft.Identity.Web`
+	- `Microsoft.AspNetCore.Authentication.JwtBearer`
+* In `appsettings.json` and `appsettings.Development.json`, set:
+	- `Instance`: `https://login.microsoftonline.com/`
+	- `TenantId`: `consumers`
+	- `ClientId`: `<your client id>`
+	- `Audience`: `<your client id>`
+* In `Program.cs`, configure authentication and protect endpoints with scope-based authorization (e.g., `Weather.Read`).
+
+### 3. Install Tools
+* VS Code REST Client extension (for `.http` file testing)
+* jq (for parsing JSON in terminal)
+
+### 4. Test Authentication and API Locally
+#### Device Code Flow (Recommended for MSA)
+1. Request device code:
+	 ```http
+	 POST https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode
+	 Content-Type: application/x-www-form-urlencoded
+
+	 client_id=<your client id>&scope=api://<your client id>/Weather.Read
+	 ```
+2. Open the `verification_uri` in your browser, enter the `user_code`, and sign in.
+3. Poll for access token:
+	 ```http
+	 POST https://login.microsoftonline.com/consumers/oauth2/v2.0/token
+	 Content-Type: application/x-www-form-urlencoded
+
+	 grant_type=device_code&client_id=<your client id>&device_code=<device_code>
+	 ```
+4. Use the access token to call your API:
+	 ```http
+	 GET http://localhost:8080/weatherforecast
+	 Authorization: Bearer <access_token>
+	 ```
+
+#### Parameterize Variables in .http File
+You can use REST Client variables and response scripts to automate token passing:
+```http
+@accessToken = <your_token>
+GET http://localhost:8080/weatherforecast
+Authorization: Bearer {{accessToken}}
+```
+Or extract from previous response:
+```http
+> {% client.global.set('accessToken', response.body.access_token); %}
+```
+
+### 5. Troubleshooting
+* **AADSTS700016: Application not found**
+	- Ensure you use the Application (client) ID, not the object ID.
+	- Double-check config files and portal registration.
+* **Invalid scope**
+	- Use the full scope URI: `api://<client_id>/Weather.Read`.
+	- Scope must match exactly as defined in Azure portal.
+* **grant_type unsupported**
+	- Password grant is not supported for MSA. Use device code or authorization code flow.
+* **AADSTS70002: client_secret required**
+	- Enable public client flows in Azure portal.
+	- Add a native client redirect URI.
+* **Local endpoint issues**
+	- Use the correct port (e.g., 8080) and protocol (http/https) as per your port forwarding setup.
+
+### 6. External Changes Required
+* Azure Portal: App registration, API exposure, authentication settings.
+* Terminal: Install jq, use curl for manual token requests.
+* VS Code: Install REST Client extension.
+
+### 7. Local Testing Summary
+* Start backend and frontend in VS Code.
+* Use port forwarding (e.g., 8080 for backend).
+* Use device code flow to acquire token and test API endpoint locally.
+
+---
 # GitHub Codespaces ♥️ .NET
 
 Want to try out the latest performance improvements coming with .NET for web development? 
